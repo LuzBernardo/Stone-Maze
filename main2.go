@@ -1,13 +1,49 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"strings"
+    "bufio"
+    "container/heap"
+    "fmt"
+    "io/ioutil"
+    "math"
+    "os"
+    "strings"
 )
+
+type PriorityQueue []*Node
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+func (pq PriorityQueue) Less(i, j int) bool {
+    return pq[i].cost < pq[j].cost
+}
+
+func (pq PriorityQueue) Swap(i, j int) {
+    pq[i], pq[j] = pq[j], pq[i]
+}
+
+func (pq *PriorityQueue) Push(x interface{}) {
+    item := x.(*Node)
+    *pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+    old := *pq
+    n := len(old)
+    item := old[n-1]
+    *pq = old[0 : n-1]
+    return item
+}
+
 
 type Coord struct {
 	row, col int
+}
+
+type Node struct {
+    coord Coord
+    path  []string
+    cost  float64
 }
 
 // Updates the maze based on the green and white cell rules
@@ -46,6 +82,11 @@ func updateMaze(maze [][]int) [][]int {
     return newMaze
 }
 
+func euclideanDistance(a, b Coord) float64 {
+    return math.Sqrt(float64((a.row-b.row)*(a.row-b.row) + (a.col-b.col)*(a.col-b.col)))
+}
+
+
 func main() {
     // Read the maze from file
     content, err := ioutil.ReadFile("maze.txt")
@@ -79,11 +120,12 @@ func main() {
         }
     }
 
-    // Define queue and visited set
-    queue := []struct {
-        row, col int
-        path     []string
-    }{{start.row, start.col, []string{}}}
+    // Add queue priority for A*
+    pq := make(PriorityQueue, 0)
+    heap.Init(&pq)
+    heap.Push(&pq, &Node{coord: start, cost: 0})
+
+    // Define visited set
     visited := make(map[Coord]bool)
     visited[start] = true
 
@@ -91,46 +133,40 @@ func main() {
     directions := []Coord{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}
     directionNames := []string{"UP", "LEFT", "RIGHT", "DOWN"}
 
-    // Perform breadth-first search
-    for len(queue) > 0 {
-        front := queue[0]
-        queue = queue[1:]
-        if front.row == dest.row && front.col == dest.col {
-            path := append(front.path, "DESTINATION")
-            for i := 1; i < len(path); i++ {
-                fmt.Printf("%s ", path[i])
+
+    // Implementation of A*
+    for pq.Len() > 0 {
+        current := heap.Pop(&pq).(*Node)
+        if current.coord == dest {
+            path := append(current.path, "DESTINATION")
+            // Print and write the path to the terminal and "best_path.txt" file
+            for _, step := range path {
+                fmt.Printf("%s ", step)
+                _, err := writer.WriteString(step + " ")
+                if err != nil {
+                    fmt.Println("Error writing to best_path.txt:", err)
+                    return
+                }
             }
-            fmt.Println()
-            return
-        }
+        visited[current.coord] = true
+        maze = updateMaze(maze)
+
         for i, d := range directions {
-            newCoord := Coord{front.row + d.row, front.col + d.col}
+            newCoord := Coord{current.coord.row + d.row, current.coord.col + d.col}
             if newCoord.row < 0 || newCoord.row >= len(maze) || newCoord.col < 0 || newCoord.col >= len(maze[newCoord.row]) {
                 continue
             }
             if maze[newCoord.row][newCoord.col] == 1 || visited[newCoord] {
                 continue
             }
-			newPath := append(front.path, directionNames[i])
-            queue = append(queue, struct {
-                row, col int
-                path     []string
-            }{newCoord.row, newCoord.col, newPath})
-            visited[newCoord] = true
-			// Print the current movement direction
-			fmt.Printf("%s ", directionNames[i])
+            newPath := append(current.path, directionNames[i])
+            newNode := &Node{
+                coord: newCoord,
+                path:  newPath,
+                cost:  current.cost + 1 + euclideanDistance(newCoord, dest),
+            }
+            heap.Push(&pq, newNode)
         }
-
-        // Update the maze based on the rules
-        maze = updateMaze(maze)
-
-        // Print the updated maze
-/*         fmt.Println("Updated maze:")
-        for _, row := range maze {
-            fmt.Println(row)
-        }
-        fmt.Println() */
     }
-
     fmt.Println("No path found")
 }
