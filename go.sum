@@ -1,0 +1,7 @@
+github.com/MaxHalford/eaopt v0.4.2 h1:4o8MADAtpnkh7ENaEvaTjBQK35ArAmKCh8KFZvXtbSc=
+github.com/MaxHalford/eaopt v0.4.2/go.mod h1:cTz/IQazmJMSEllWjTzuReRUmLBR20o0C8OUoUHHuP8=
+github.com/MaxHalford/gago v0.0.0-20180803141938-502b393f59df h1:bvQ23VGspQtwqPLkq0ElO6Y0oIMEvVtH6RoQG7gSIBI=
+github.com/MaxHalford/gago v0.0.0-20180803141938-502b393f59df/go.mod h1:AQUEEjyx2VRPxPFDNBANzFOANctuUGeLIIieu3UUjsQ=
+golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.1.0 h1:wsuoTGHzEhffawBOhz5CYhcrV4IdKZbEyZjBMuTp12o=
+golang.org/x/sync v0.1.0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
