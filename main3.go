@@ -5,6 +5,7 @@ import (
     "fmt"
     "io/ioutil"
     "math"
+    "os"
     "strings"
 )
 
@@ -129,19 +130,73 @@ func main() {
 
     // Define directions
     directions := []Coord{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}
-    directionNames := []string{"UP", "LEFT", "RIGHT", "DOWN"}
+    directionNames := []string{"U", "L", "R", "D"}
 
+	var bestPath []string
+	var bestMovements int = math.MaxInt64
+	var reportInterval int = 1000
 
     // Implementation of A*
+    pathLimit := 10000000000
+    pathCount := 0
     for pq.Len() > 0 {
+		pathCount++
         current := heap.Pop(&pq).(*Node)
         if current.coord == dest {
             path := append(current.path, "DESTINATION")
-            for _, step := range path {
-                fmt.Printf("%s ", step)
+            movements := len(current.path)
+            pathStr := fmt.Sprintf("It took %d movements: %s", movements, strings.Join(path, " "))
+
+            // Read the existing content of the best_path.txt file
+            content, err := ioutil.ReadFile("best_path.txt")
+            if err != nil {
+                panic(err)
             }
-            fmt.Println()
-            return
+            existingPaths := strings.Split(string(content), "\n")
+
+            // Check if the current path is shorter than any previous paths
+            isNewBest := true
+            for _, line := range existingPaths {
+                if line == "" {
+                    continue
+                }
+                var existingMovements int
+                _, _ = fmt.Sscanf(line, "It took %d movements:", &existingMovements)
+                if movements >= existingMovements {
+                    isNewBest = false
+                    break
+                }
+            }
+
+            if isNewBest {
+                // Append the new best path to the file
+                file, err := os.OpenFile("best_path.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                if err != nil {
+                    panic(err)
+                }
+                defer file.Close()
+
+                _, err = file.WriteString(pathStr + "\n")
+                if err != nil {
+                    panic(err)
+                }
+
+				bestPath = append(current.path, "DESTINATION")
+				bestMovements = movements
+			
+				// Add this condition to print the best path periodically
+				if pathCount % reportInterval == 0 {
+					fmt.Printf("Best path found so far after %d paths explored:\n", pathCount)
+					fmt.Printf("It took %d movements: %s\n", bestMovements, strings.Join(bestPath, " "))
+				}
+			} else {
+				fmt.Printf("Current path is not the new best.\n%s\n", pathStr)
+			}
+
+            // Continue the search if the path limit has not been reached
+            if pathCount >= pathLimit {
+                break
+            }
         }
         visited[current.coord] = true
         maze = updateMaze(maze)
@@ -163,5 +218,12 @@ func main() {
             heap.Push(&pq, newNode)
         }
     }
-    fmt.Println("No path found")
+
+	if len(bestPath) > 0 {
+		fmt.Printf("Best path found so far after %d paths explored:\n", pathCount)
+		fmt.Printf("It took %d movements: %s\n", bestMovements, strings.Join(bestPath, " "))
+	} else {
+		fmt.Println("No best path found")
+	}
 }
+
